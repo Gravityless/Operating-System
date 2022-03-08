@@ -18,8 +18,10 @@ start:
 	data32 addr32 lgdt gdtDesc 
 
 	# TODO: 把cr0的最低位设置为1
-
-
+	pushl %eax
+	movl 0x1, %eax
+	movl %eax, %cr0
+	popl %eax
 
 	# 长跳转切换到保护模式
 	data32 ljmp $0x08, $start32 
@@ -37,8 +39,27 @@ start32:
 	movl %eax, %esp
 
 	# TODO：编写输出函数，输出"Hello World" （Hint:参考app.s！！！）
+	pushl $13
+	pushl $message
+	calll displayStr
+loop:
+	jmp loop
 
+message:
+	.string "Hello, World!\n\0"
 
+displayStr:
+	movl 4(%esp), %ebx
+	movl 8(%esp), %ecx
+	movl $((80*5+0)*2), %edi
+	movb $0x0c, %ah
+nextChar:
+	movb (%ebx), %al
+	movw %ax, %gs:(%edi)
+	addl $2, %edi
+	incl %ebx
+	loopnz nextChar # loopnz decrease ecx by 1
+	ret
 
 
 .p2align 2
@@ -52,16 +73,16 @@ gdt:
 	.byte 0,0,0,0
 
 	# TODO：代码段描述符，对应cs
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte  0,0x92,0xcf,0
 
 	# TODO：数据段描述符，对应ds
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte 0,0x92,0xcf,0
 
 	# TODO：图像段描述符，对应gs
-	.word
-	.byte 
+	.word 0xffff,0x8000
+	.byte 0x0b,0x92,0xcf,0
 
 
 gdtDesc: 
