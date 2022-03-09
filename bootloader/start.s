@@ -18,7 +18,9 @@ start:
 	data32 addr32 lgdt gdtDesc 
 
 	# TODO: 把cr0的最低位设置为1
-
+	movl %cr0,%eax
+	orb $0x01,%al
+	movl %eax,%cr0
 
 
 	# 长跳转切换到保护模式
@@ -37,7 +39,7 @@ start32:
 	movl %eax, %esp
 
 	# TODO：跳转到jmp
-
+	call bootMain
 
 
 
@@ -52,16 +54,16 @@ gdt:
 	.byte 0,0,0,0
 
 	# TODO：代码段描述符，对应cs
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte 0,0x9a,0xcf,0
 
 	# TODO：数据段描述符，对应ds
-	.word
-	.byte 
+	.word 0xffff,0
+	.byte 0,0x92,0xcf,0
 
 	# TODO：图像段描述符，对应gs
-	.word
-	.byte 
+	.word 0xffff,0x8000
+	.byte 0x0b,0x92,0xcf,0
 
 
 gdtDesc: 
