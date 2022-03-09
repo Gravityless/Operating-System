@@ -18,10 +18,9 @@ start:
 	data32 addr32 lgdt gdtDesc 
 
 	# TODO: 把cr0的最低位设置为1
-	pushl %eax
-	movl 0x1, %eax
-	movl %eax, %cr0
-	popl %eax
+	movl %cr0,%eax
+	orb 0x01,%al
+	movl %eax,%cr0
 
 	# 长跳转切换到保护模式
 	data32 ljmp $0x08, $start32 
