@@ -39,7 +39,7 @@ start32:
 	movl %eax, %esp
 
 	# TODO：跳转到jmp
-	call bootMain
+	jmp bootMain
 
 
 
