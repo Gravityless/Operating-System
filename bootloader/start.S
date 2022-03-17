@@ -27,7 +27,7 @@ start32:
 	movw $0x18, %ax  # setting graphics data segment selector
 	movw %ax, %gs
 	
-	movl $0x1fffff,%eax        #  setting esp
+	movl $0x1fffff,%eax        #  setting esp, why? for Kernel Stack use
 	movl %eax,%esp
 	
 	jmp bootMain # jump to bootMain in boot.c

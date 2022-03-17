@@ -9,6 +9,10 @@
 void bootMain(void) {
 	int i = 0;
 	int phoff = 0x34;
+	int phnum = 0x1;
+	int memsz = 0;
+	int vaddr = 0;
+	int type = 0;
 	int offset = 0x1000;
 	unsigned int elf = 0x100000;
 	void (*kMainEntry)(void);
@@ -19,8 +23,28 @@ void bootMain(void) {
 	}
 
 	// TODO: 填写kMainEntry、phoff、offset...... 然后加载Kernel（可以参考NEMU的某次lab）
+	ELFHeader *eh = (ELFHeader*)elf;
+    kMainEntry = (void(*)(void))(eh->entry);
+    phoff = eh->phoff;
+	phnum = eh->phnum;
 
+	// get the first program header
+    ProgramHeader *ph = (ProgramHeader*)(elf + phoff);
+	
+	// iterate all headers
+	for(i = 0; i < phnum; i++, ph++) {
+		offset = ph->off;
+		memsz = ph->memsz;
+		vaddr = ph->vaddr;
+		type = ph->type;
 
+		// check weither it is LOAD
+		if (type == 0x1) {
+			for (int j = 0; j < memsz; j++) {
+				*(unsigned char *)(vaddr + j) = *(unsigned char *)(elf + j + offset);
+			}
+		}
+	}
 
 	kMainEntry();
 }

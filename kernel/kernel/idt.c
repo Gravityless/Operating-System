@@ -15,7 +15,14 @@ static void setIntr(struct GateDescriptor *ptr, uint32_t selector, uint32_t offs
 		请理解后再填，弄清楚offset和dpl是啥玩意儿
 		结构体声明在某个文件里
 	*/
-
+	ptr->offset_15_0 = offset & 0xffff;
+	ptr->segment = selector << 3;
+	ptr->pad0 = 0;
+	ptr->type = INTERRUPT_GATE_32;
+	ptr->system = 0;
+	ptr->privilege_level = dpl;
+	ptr->present = 1;
+	ptr->offset_31_16 = offset & 0xffff0000;
 }
 
 /* 初始化一个陷阱门(trap gate) */
@@ -23,10 +30,14 @@ static void setTrap(struct GateDescriptor *ptr, uint32_t selector, uint32_t offs
 	/* TODO: 初始化trap gate
 		要求同上
 	*/
-
-
-
-
+	ptr->offset_15_0 = offset & 0xFFFF;
+	ptr->segment = selector << 3;
+	ptr->pad0 = 0;
+	ptr->type = TRAP_GATE_32;
+	ptr->system = 0;
+	ptr->privilege_level = dpl;
+	ptr->present = 1;
+	ptr->offset_31_16 = offset & 0xffff0000;
 }
 
 /* 声明函数，这些函数在汇编代码里定义 */
@@ -43,7 +54,7 @@ void irqAlignCheck(); // 0x11
 void irqSecException(); // 0x1e
 void irqKeyboard(); 
 
-void irqSyscall();
+void irqSyscall();	// 8259a映射为0x21
 
 
 //256 interrupt vector
@@ -57,16 +68,19 @@ void initIdt() {
 	
 	/* Exceptions with error code */
 	// TODO: 填好剩下的表项，参考上面那个，是不是就会了？
-
-
-
-
-
+	setTrap(idt + 0x8, SEG_KCODE, (uint32_t)irqDoubleFault, DPL_KERN);
+	setTrap(idt + 0xa, SEG_KCODE, (uint32_t)irqInvalidTSS, DPL_KERN);
+	setTrap(idt + 0xb, SEG_KCODE, (uint32_t)irqSegNotPresent, DPL_KERN);
+	setTrap(idt + 0xc, SEG_KCODE, (uint32_t)irqStackSegFault, DPL_KERN);
+	setTrap(idt + 0xd, SEG_KCODE, (uint32_t)irqGProtectFault, DPL_KERN);
+	setTrap(idt + 0xe, SEG_KCODE, (uint32_t)irqPageFault, DPL_KERN);
+	setTrap(idt + 0x11, SEG_KCODE, (uint32_t)irqAlignCheck, DPL_KERN);
+	setTrap(idt + 0x1e, SEG_KCODE, (uint32_t)irqSecException, DPL_KERN);
 
 	/* Exceptions with DPL = 3 */
 	// TODO: 填好剩下的表项，哪个dpl是3，手册里都说了，别看往年代码，都是错的，小心被抓 ：）
-	setIntr(idt + 0x80,SEG_KCODE,(uint32_t)irqSyscall,DPL_USER);
-
+	setIntr(idt + 0x80, SEG_KCODE, (uint32_t)irqSyscall,DPL_USER);
+	setIntr(idt + 0x21, SEG_KCODE, (uint32_t)irqKeyboard, DPL_USER);
 
 	/* 写入IDT */
 	saveIdt(idt, sizeof(idt));//use lidt
