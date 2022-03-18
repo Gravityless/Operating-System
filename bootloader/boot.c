@@ -10,6 +10,7 @@ void bootMain(void) {
 	int i = 0;
 	int phoff = 0x34;
 	int phnum = 0x1;
+	int filesz = 0;
 	int memsz = 0;
 	int vaddr = 0;
 	int type = 0;
@@ -34,14 +35,21 @@ void bootMain(void) {
 	// iterate all headers
 	for(i = 0; i < phnum; i++, ph++) {
 		offset = ph->off;
+		filesz = ph->filesz;
 		memsz = ph->memsz;
 		vaddr = ph->vaddr;
 		type = ph->type;
 
 		// check weither it is LOAD
 		if (type == 0x1) {
-			for (int j = 0; j < memsz; j++) {
+			// loading filesz
+			for (int j = 0; j < filesz; j++) {
 				*(unsigned char *)(vaddr + j) = *(unsigned char *)(elf + j + offset);
+			}
+
+			//loading other memsz 
+			for (int j = filesz; j < memsz; j++) {
+				*(unsigned char *)(vaddr + j) = 0;
 			}
 		}
 	}
