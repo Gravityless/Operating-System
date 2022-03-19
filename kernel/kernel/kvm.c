@@ -58,61 +58,60 @@ user program is loaded to location 0x200000, i.e., 2MB
 size of user program is not greater than 200*512 bytes, i.e., 100KB
 */
 
-void loadUMain(void) {
+void old_loadUMain(void) {
 	// TODO: 参照bootloader加载内核的方式，具体加载到哪里请结合手册提示思考！
-	
-	// int i = 0;
-	// int phoff = 0x0;
-	// int offset = 0x0;
-	// uint32_t elf = 0x0;
-	// uint32_t uMainEntry = 0;//read to 0x200000
 
 	int i = 0;
-	int phoff = 0x34;
-	int phnum = 0x1;
-	int filesz = 0;
-	int memsz = 0;
-	int vaddr = 0;
-	int type = 0;
-	int offset = 0x1000;
 	unsigned int elf = 0x200000;
-	void (*uMainEntry)(void);
-	uMainEntry = (void(*)(void))0x200000;
+	unsigned int uMainEntry = 0x200000;
 
 	for (i = 0; i < 200; i++) {
 		readSect((void*)(elf + i*512), 201+i);
 	}
 
 	ELFHeader *eh = (ELFHeader*)elf;
-    uMainEntry = (void(*)(void))(eh->entry);
-    phoff = eh->phoff;
-	phnum = eh->phnum;
+    uMainEntry = eh->entry;
 
 	// get the first program header
-    ProgramHeader *ph = (ProgramHeader*)(elf + phoff);
+    ProgramHeader *ph = (ProgramHeader*)(elf + eh->phoff);
 	
 	// iterate all headers
-	for(i = 0; i < phnum; i++, ph++) {
-		offset = ph->off;
-		filesz = ph->filesz;
-		memsz = ph->memsz;
-		vaddr = ph->vaddr;
-		type = ph->type;
-
+	for(i = 0; i < eh->phnum; i++, ph++) {
 		// check weither it is LOAD
-		if (type == 0x1) {
+		if (ph->type == 0x1) {
 			// loading filesz
-			for (int j = 0; j < filesz; j++) {
-				*(unsigned char *)(vaddr + j) = *(unsigned char *)(elf + j + offset);
+			for (int j = 0; j < ph->filesz; j++) {
+				*(unsigned char *)(ph->vaddr + j) = *(unsigned char *)(elf + j + ph->off);
 			}
 
 			//loading other memsz 
-			for (int j = filesz; j < memsz; j++) {
-				*(unsigned char *)(vaddr + j) = 0;
+			for (int j = ph->filesz; j < ph->memsz; j++) {
+				*(unsigned char *)(ph->vaddr + j) = 0;
 			}
 		}
 	}
 
 	enterUserSpace(uMainEntry);
+}
+
+void loadUMain(void) {
+	int i = 0;
+	int phoff = 0x34; // program header offset
+	int offset = 0x1000; // .text section offset
+	uint32_t elf = 0x200000; // physical memory addr to load
+	uint32_t uMainEntry = 0x200000;
+
+	for (i = 0; i < 200; i++) {
+		readSect((void*)(elf + i*512), 201+i);
+	}
 	
+	uMainEntry = ((struct ELFHeader *)elf)->entry; // entry address of the program
+	phoff = ((struct ELFHeader *)elf)->phoff;
+	offset = ((struct ProgramHeader *)(elf + phoff))->off;
+
+	for (i = 0; i < 200 * 512; i++) {
+		*(uint8_t *)(elf + i) = *(uint8_t *)(elf + i + offset);
+	}
+
+	enterUserSpace(uMainEntry);
 }

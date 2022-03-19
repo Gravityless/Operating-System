@@ -68,7 +68,8 @@ char getChar(){ // 对应SYS_READ STD_IN
 
 void getStr(char *str, int size){ // 对应SYS_READ STD_STR
 	// TODO: 实现getStr函数，方式不限
-	str = malloc(size * sizeof(char));
+	char buffer[MAX_BUFFER_SIZE];
+	str = buffer;
 	syscall(SYS_READ,STD_STR, (uint32_t)str, (uint32_t)size, 0, 0);
 }
 

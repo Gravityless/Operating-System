@@ -2,19 +2,8 @@
 
 #define SECTSIZE 512
 
-
-
-
-
 void bootMain(void) {
 	int i = 0;
-	int phoff = 0x34;
-	int phnum = 0x1;
-	int filesz = 0;
-	int memsz = 0;
-	int vaddr = 0;
-	int type = 0;
-	int offset = 0x1000;
 	unsigned int elf = 0x100000;
 	void (*kMainEntry)(void);
 	kMainEntry = (void(*)(void))0x100000;
@@ -26,30 +15,22 @@ void bootMain(void) {
 	// TODO: 填写kMainEntry、phoff、offset...... 然后加载Kernel（可以参考NEMU的某次lab）
 	ELFHeader *eh = (ELFHeader*)elf;
     kMainEntry = (void(*)(void))(eh->entry);
-    phoff = eh->phoff;
-	phnum = eh->phnum;
 
 	// get the first program header
-    ProgramHeader *ph = (ProgramHeader*)(elf + phoff);
+    ProgramHeader *ph = (ProgramHeader*)(elf + eh->phoff);
 	
 	// iterate all headers
-	for(i = 0; i < phnum; i++, ph++) {
-		offset = ph->off;
-		filesz = ph->filesz;
-		memsz = ph->memsz;
-		vaddr = ph->vaddr;
-		type = ph->type;
-
+	for(i = 0; i < eh->phnum; i++, ph++) {
 		// check weither it is LOAD
-		if (type == 0x1) {
+		if (ph->type == 0x1) {
 			// loading filesz
-			for (int j = 0; j < filesz; j++) {
-				*(unsigned char *)(vaddr + j) = *(unsigned char *)(elf + j + offset);
+			for (int j = 0; j < ph->filesz; j++) {
+				*(unsigned char *)(ph->vaddr + j) = *(unsigned char *)(elf + j + ph->off);
 			}
 
 			//loading other memsz 
-			for (int j = filesz; j < memsz; j++) {
-				*(unsigned char *)(vaddr + j) = 0;
+			for (int j = ph->filesz; j < ph->memsz; j++) {
+				*(unsigned char *)(ph->vaddr + j) = 0;
 			}
 		}
 	}
