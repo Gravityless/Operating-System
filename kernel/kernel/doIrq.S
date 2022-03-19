@@ -64,6 +64,7 @@ irqSecException:
 irqKeyboard:
 	pushl $0
 	# TODO: 将irqKeyboard的中断向量号压入栈（手册里有说，注意看手册）
+	pushl $0x21
 
 	jmp asmDoIrq
 

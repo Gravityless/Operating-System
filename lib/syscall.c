@@ -26,7 +26,7 @@ int32_t syscall(int num, uint32_t a1,uint32_t a2,
 	//change the condition and arbitrary memory locations.
 
 	/*
-		 Note: ebp shouldn't be flushed
+		Note: ebp shouldn't be flushed
 	    May not be necessary to store the value of eax, ebx, ecx, edx, esi, edi
 	*/
 	uint32_t eax, ecx, edx, ebx, esi, edi;
@@ -62,12 +62,14 @@ int32_t syscall(int num, uint32_t a1,uint32_t a2,
 
 char getChar(){ // 对应SYS_READ STD_IN
 	// TODO: 实现getChar函数，方式不限
-
+	int character = syscall(SYS_READ, STD_IN, 0, 0, 0, 0);
+	return (char)character;
 }
 
 void getStr(char *str, int size){ // 对应SYS_READ STD_STR
 	// TODO: 实现getStr函数，方式不限
-
+	str = malloc(size * sizeof(char));
+	syscall(SYS_READ,STD_STR, (uint32_t)str, (uint32_t)size, 0, 0);
 }
 
 int dec2Str(int decimal, char *buffer, int size, int count);
@@ -75,23 +77,65 @@ int hex2Str(uint32_t hexadecimal, char *buffer, int size, int count);
 int str2Str(char *string, char *buffer, int size, int count);
 
 void printf(const char *format,...){
-	int i=0; // format index
+	int i = 0; // format index
 	char buffer[MAX_BUFFER_SIZE];
-	int count=0; // buffer index
-	int index=0; // parameter index
-	void *paraList=(void*)&format; // address of format in stack
-	int state=0; // 0: legal character; 1: '%'; 2: illegal format
-	int decimal=0;
-	uint32_t hexadecimal=0;
-	char *string=0;
-	char character=0;
-	void* para=0;
-	while(format[i]!=0){
-		//buffer[count] = format[i];
-		//count++;
-		//i++;
+	int count = 0; // buffer index
+	int index = 0; // parameter index
+	void *paraList = (void*)&format; // address of format in stack
+	int state = 0; // 0: legal character; 1: '%'; 2: illegal format
+	int decimal = 0;
+	uint32_t hexadecimal = 0;
+	char *string = 0;
+	void *para = paraList + sizeof(format);
+	while(format[i] != 0){
+		//buffer[count++] = format[i++];
 		//TODO: 可以借助状态机（回忆数电），辅助的函数已经实现好了，注意阅读手册
-		
+		if (format[i] == '%') {
+			state = 1;
+		} else if (format[i] > 0x19 && format[i] < 0x7f) {
+			state = 0;
+		} else {
+			state = 2;
+		}
+
+		switch (state)
+		{
+		case 0:
+			buffer[count++] = format[i++];
+			break;
+		case 1:
+			i++;
+			switch (format[i])
+			{
+			case 'c':
+				buffer[count++] = (char)para;
+				para += sizeof(char);
+				break;
+			case 's':
+				string = (char *)para;
+				count = str2Str(string, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
+				para += sizeof(char *);
+				break;
+			case 'x':
+				hexadecimal = (uint32_t)para;
+				count = hex2Str(hexadecimal, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
+				para += sizeof(uint32_t);
+				break;
+			case 'd':
+				decimal = (int)decimal;
+				count = dec2Str(decimal, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
+				para += sizeof(int);
+				break;
+			}
+			break;
+		case 2:
+			i++;
+			break;
+		}
+
+		if (count == MAX_BUFFER_SIZE) {
+			syscall(SYS_WRITE, STD_OUT, (uint32_t)buffer, (uint32_t)MAX_BUFFER_SIZE, 0, 0);
+		}
 	}
 	if(count!=0)
 		syscall(SYS_WRITE, STD_OUT, (uint32_t)buffer, (uint32_t)count, 0, 0);

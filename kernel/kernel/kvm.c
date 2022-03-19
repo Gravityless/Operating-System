@@ -61,13 +61,57 @@ size of user program is not greater than 200*512 bytes, i.e., 100KB
 void loadUMain(void) {
 	// TODO: 参照bootloader加载内核的方式，具体加载到哪里请结合手册提示思考！
 	
+	// int i = 0;
+	// int phoff = 0x0;
+	// int offset = 0x0;
+	// uint32_t elf = 0x0;
+	// uint32_t uMainEntry = 0;//read to 0x200000
+
 	int i = 0;
-	int phoff = 0x0;
-	int offset = 0x0;
-	uint32_t elf = 0x0;
-	uint32_t uMainEntry = 0;//read to 0x200000
+	int phoff = 0x34;
+	int phnum = 0x1;
+	int filesz = 0;
+	int memsz = 0;
+	int vaddr = 0;
+	int type = 0;
+	int offset = 0x1000;
+	unsigned int elf = 0x200000;
+	void (*uMainEntry)(void);
+	uMainEntry = (void(*)(void))0x200000;
 
+	for (i = 0; i < 200; i++) {
+		readSect((void*)(elf + i*512), 201+i);
+	}
 
+	ELFHeader *eh = (ELFHeader*)elf;
+    uMainEntry = (void(*)(void))(eh->entry);
+    phoff = eh->phoff;
+	phnum = eh->phnum;
+
+	// get the first program header
+    ProgramHeader *ph = (ProgramHeader*)(elf + phoff);
+	
+	// iterate all headers
+	for(i = 0; i < phnum; i++, ph++) {
+		offset = ph->off;
+		filesz = ph->filesz;
+		memsz = ph->memsz;
+		vaddr = ph->vaddr;
+		type = ph->type;
+
+		// check weither it is LOAD
+		if (type == 0x1) {
+			// loading filesz
+			for (int j = 0; j < filesz; j++) {
+				*(unsigned char *)(vaddr + j) = *(unsigned char *)(elf + j + offset);
+			}
+
+			//loading other memsz 
+			for (int j = filesz; j < memsz; j++) {
+				*(unsigned char *)(vaddr + j) = 0;
+			}
+		}
+	}
 
 	enterUserSpace(uMainEntry);
 	

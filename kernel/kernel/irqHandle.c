@@ -31,9 +31,17 @@ void irqHandle(struct TrapFrame *tf) { // pointer tf = esp
 
 	switch(tf->irq) {
 		// TODO: 填好中断处理程序的调用
-
-
-
+		case -1:
+			break;
+		case 0xd:
+			GProtectFaultHandle(tf);
+			break;
+		case 0x21:
+			KeyboardHandle(tf);
+			break;
+		case 0x80:
+			syscallHandle(tf);
+			break;
 		default:assert(0);
 	}
 }
@@ -169,7 +177,6 @@ void syscallRead(struct TrapFrame *tf){
 }
 
 void syscallGetChar(struct TrapFrame *tf){
-
 	bufferHead=0;
 	bufferTail=0;
 	keyBuffer[bufferHead]=0;
