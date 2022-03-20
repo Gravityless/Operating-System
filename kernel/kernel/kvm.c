@@ -1,5 +1,6 @@
 #include "x86.h"
 #include "device.h"
+#include "/home/oslab/Desktop/test/lab2/lib/lib.h"
 
 SegDesc gdt[NR_SEGMENTS];       // the new GDT, NR_SEGMENTS=7, defined in x86/memory.h
 TSS tss;
@@ -31,7 +32,6 @@ void initSeg() { // setup kernel segements
 	asm volatile("movw %%ax,%%ss":: "a" (KSEL(SEG_KDATA)));
 
 	lLdt(0);
-	
 }
 
 void enterUserSpace(uint32_t entry) {
@@ -45,7 +45,7 @@ void enterUserSpace(uint32_t entry) {
 	asm volatile("pushl %0":: "r" (0x2fffff)); 
 	asm volatile("pushfl"); //push eflags, sti
 	asm volatile("popl %0":"=r" (EFLAGS));
-	asm volatile("pushl %0"::"r"(EFLAGS|0x200));
+	asm volatile("pushl %0"::"r"(EFLAGS|0x202));
 	asm volatile("pushl %0":: "r" (USEL(SEG_UCODE))); // push cs
 	asm volatile("pushl %0":: "r" (entry)); 
 	asm volatile("iret");
@@ -58,43 +58,59 @@ user program is loaded to location 0x200000, i.e., 2MB
 size of user program is not greater than 200*512 bytes, i.e., 100KB
 */
 
-void old_loadUMain(void) {
+void loadUMain(void) {
 	// TODO: 参照bootloader加载内核的方式，具体加载到哪里请结合手册提示思考！
-
+	// while(1);
 	int i = 0;
-	unsigned int elf = 0x200000;
+	unsigned int elf = 0x400000;
 	unsigned int uMainEntry = 0x200000;
+	unsigned int USoffset = 0x200000;
+
+	int phoff, phnum, filesz, memsz, vaddr, type, offset;
 
 	for (i = 0; i < 200; i++) {
 		readSect((void*)(elf + i*512), 201+i);
 	}
 
 	ELFHeader *eh = (ELFHeader*)elf;
-    uMainEntry = eh->entry;
+	uMainEntry = eh->entry;
+    phoff = eh->phoff;
+	phnum = eh->phnum;
 
 	// get the first program header
-    ProgramHeader *ph = (ProgramHeader*)(elf + eh->phoff);
+    ProgramHeader *ph = (ProgramHeader*)(elf + phoff);
 	
 	// iterate all headers
-	for(i = 0; i < eh->phnum; i++, ph++) {
+	for(i = 0; i < phnum; i++, ph++) {
+		offset = ph->off;
+		filesz = ph->filesz;
+		memsz = ph->memsz;
+		vaddr = ph->vaddr;
+		type = ph->type;
+
 		// check weither it is LOAD
-		if (ph->type == 0x1) {
+		if (type == 0x1) {
 			// loading filesz
-			for (int j = 0; j < ph->filesz; j++) {
-				*(unsigned char *)(ph->vaddr + j) = *(unsigned char *)(elf + j + ph->off);
+			for (int j = 0; j < filesz; j++) {
+				*(unsigned char *)(vaddr + j + USoffset) = *(unsigned char *)(elf + j + offset);
 			}
 
 			//loading other memsz 
-			for (int j = ph->filesz; j < ph->memsz; j++) {
-				*(unsigned char *)(ph->vaddr + j) = 0;
+			for (int j = filesz; j < memsz; j++) {
+				*(unsigned char *)(vaddr + j + USoffset) = 0;
 			}
 		}
 	}
-
+	
+	putStr("Entering UserSpace");
+	putChar('\n');
 	enterUserSpace(uMainEntry);
 }
 
+/*
 void loadUMain(void) {
+	putStr("Loading UserApp");
+	putChar('\n');
 	int i = 0;
 	int phoff = 0x34; // program header offset
 	int offset = 0x1000; // .text section offset
@@ -113,5 +129,7 @@ void loadUMain(void) {
 		*(uint8_t *)(elf + i) = *(uint8_t *)(elf + i + offset);
 	}
 
+	putStr("Entering UserSpace");
+	putChar('\n');
 	enterUserSpace(uMainEntry);
-}
+}*/

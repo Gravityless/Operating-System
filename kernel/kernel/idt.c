@@ -22,7 +22,7 @@ static void setIntr(struct GateDescriptor *ptr, uint32_t selector, uint32_t offs
 	ptr->system = 0;
 	ptr->privilege_level = dpl;
 	ptr->present = 1;
-	ptr->offset_31_16 = offset & 0xffff0000;
+	ptr->offset_31_16 = offset >> 16;
 }
 
 /* 初始化一个陷阱门(trap gate) */
@@ -37,7 +37,7 @@ static void setTrap(struct GateDescriptor *ptr, uint32_t selector, uint32_t offs
 	ptr->system = 0;
 	ptr->privilege_level = dpl;
 	ptr->present = 1;
-	ptr->offset_31_16 = offset & 0xffff0000;
+	ptr->offset_31_16 = offset >> 16;
 }
 
 /* 声明函数，这些函数在汇编代码里定义 */

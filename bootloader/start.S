@@ -29,7 +29,7 @@ start32:
 	
 	movl $0x1fffff,%eax        #  setting esp, why? for Kernel Stack use
 	movl %eax,%esp
-	
+
 	jmp bootMain # jump to bootMain in boot.c
 
 .p2align 2

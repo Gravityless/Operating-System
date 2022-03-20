@@ -1,8 +1,6 @@
 #include "lib.h"
 #include "types.h"
 
-
-
 /*
  * io lib here
  * 库函数写在这
@@ -68,8 +66,8 @@ char getChar(){ // 对应SYS_READ STD_IN
 
 void getStr(char *str, int size){ // 对应SYS_READ STD_STR
 	// TODO: 实现getStr函数，方式不限
-	char buffer[MAX_BUFFER_SIZE];
-	str = buffer;
+	// char buffer[MAX_BUFFER_SIZE];
+	// str = buffer;
 	syscall(SYS_READ,STD_STR, (uint32_t)str, (uint32_t)size, 0, 0);
 }
 
@@ -77,23 +75,32 @@ int dec2Str(int decimal, char *buffer, int size, int count);
 int hex2Str(uint32_t hexadecimal, char *buffer, int size, int count);
 int str2Str(char *string, char *buffer, int size, int count);
 
+// print to test weither entered UserSpace
+void test(void) {
+	char buffer[20] = {0};
+	str2Str("Entered User Sapce\n", buffer, 19, 0);
+}
+
 void printf(const char *format,...){
+	// while(1);
 	int i = 0; // format index
 	char buffer[MAX_BUFFER_SIZE];
 	int count = 0; // buffer index
-	int index = 0; // parameter index
+	// int index = 0; // parameter index
+	// uint32_t paraList = (uint32_t)format;
 	void *paraList = (void*)&format; // address of format in stack
+	uint32_t para = (uint32_t)paraList + sizeof(format);
 	int state = 0; // 0: legal character; 1: '%'; 2: illegal format
 	int decimal = 0;
 	uint32_t hexadecimal = 0;
 	char *string = 0;
-	void *para = paraList + sizeof(format);
+	
 	while(format[i] != 0){
 		//buffer[count++] = format[i++];
 		//TODO: 可以借助状态机（回忆数电），辅助的函数已经实现好了，注意阅读手册
 		if (format[i] == '%') {
 			state = 1;
-		} else if (format[i] > 0x19 && format[i] < 0x7f) {
+		} else if (format[i] < 0x80) {
 			state = 0;
 		} else {
 			state = 2;
@@ -109,25 +116,23 @@ void printf(const char *format,...){
 			switch (format[i])
 			{
 			case 'c':
-				buffer[count++] = (char)para;
-				para += sizeof(char);
+				buffer[count++] = *(char *)para;
 				break;
 			case 's':
-				string = (char *)para;
+				string = *(char **)para;
 				count = str2Str(string, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
-				para += sizeof(char *);
 				break;
 			case 'x':
-				hexadecimal = (uint32_t)para;
+				hexadecimal = *(uint32_t *)para;
 				count = hex2Str(hexadecimal, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
-				para += sizeof(uint32_t);
 				break;
 			case 'd':
-				decimal = (int)decimal;
+				decimal = *(int *)para;
 				count = dec2Str(decimal, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
-				para += sizeof(int);
 				break;
 			}
+			para += sizeof(uint32_t);
+			i++;
 			break;
 		case 2:
 			i++;

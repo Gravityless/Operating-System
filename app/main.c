@@ -10,6 +10,8 @@ int uEntry(void) {
 	asm volatile("movw %%ss, %0":"=m"(selector)); // necessary or not, iret may reset ds in QEMU
 	asm volatile("movw %%ax, %%ds"::"a"(selector));
 	
+	// print Entered User Space
+	test();
 	
 	printf("I/O test begin...\n");
 	printf("the answer should be:\n");
@@ -24,6 +26,8 @@ int uEntry(void) {
 	printf("#######################################################\n");
 	printf("your answer:\n");
 	printf("=======================================================\n");
+	printf("test char: %c\n", 'a');
+	printf("test two char: %c %c\n", 'a', 'b');
 	printf("%s %s%scome %co%s", "Hello,", "", "wel", 't', " ");
 	printf("%c%c%c%c%c! ", 'O', 'S', 'l', 'a', 'b');
 	printf("I'm the %s of %s.\n", "body", "the game");
