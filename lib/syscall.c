@@ -66,8 +66,6 @@ char getChar(){ // 对应SYS_READ STD_IN
 
 void getStr(char *str, int size){ // 对应SYS_READ STD_STR
 	// TODO: 实现getStr函数，方式不限
-	// char buffer[MAX_BUFFER_SIZE];
-	// str = buffer;
 	syscall(SYS_READ,STD_STR, (uint32_t)str, (uint32_t)size, 0, 0);
 }
 
@@ -81,15 +79,77 @@ void test(void) {
 	str2Str("Entered User Sapce\n", buffer, 19, 0);
 }
 
+int remove_whitespace(char *string, int decindex) {
+	char c = string[decindex];
+	while(c == ' ' || c == '\r' || c == '\n') {
+		decindex++;
+		c = string[decindex];
+	}
+	return decindex;
+}
+
+void scanf(const char *format,...){
+	int i = 0; // format index
+	uint32_t para = (uint32_t)&format + 4; // sizeof(format)
+	int state = 0; // 0: legal character; 1: '%'; 2: illegal format
+	char string[MAX_BUFFER_SIZE] = {0};
+	int decimal = 0;
+	int decindex = 0;
+	int flag = 0;
+	
+	while(format[i] != 0){
+		//TODO: state = 1: 格式化参数， 0: 普通字符， 2: 非法字符
+		if (format[i] == '%') {
+			state = 1;
+		} else if (format[i] < 0x80) {
+			state = 0;
+		} else {
+			state = 2;
+		}
+
+		switch (state)
+		{
+		case 1:
+			i++;
+			switch (format[i])
+			{
+			case 'c':
+				**(char **)para = getChar();
+				break;
+			case 's':
+				getStr(*(char **)para, MAX_BUFFER_SIZE);
+				break;
+			case 'd':
+				getStr(string, MAX_BUFFER_SIZE);
+				decindex = remove_whitespace(string, 0);
+				if (string[decimal] == '-') {
+					flag = 1;
+					decindex++;
+				}
+				while(string[decindex] >= '0' && string[decindex] <= '9') {
+					decimal = decimal * 10 + (string[decindex] - '0');
+					decindex++;
+				}
+				if (flag == 1) decimal = -decimal;
+				**(uint32_t **)para = decimal;
+				break;
+			}
+			para += 4; // sizeof(uint32_t)
+			i++;
+			break;
+		case 0:
+		case 2:
+			i++;
+			break;
+		}
+	}
+}
+
 void printf(const char *format,...){
-	// while(1);
 	int i = 0; // format index
 	char buffer[MAX_BUFFER_SIZE];
 	int count = 0; // buffer index
-	// int index = 0; // parameter index
-	// uint32_t paraList = (uint32_t)format;
-	void *paraList = (void*)&format; // address of format in stack
-	uint32_t para = (uint32_t)paraList + sizeof(format);
+	uint32_t para = (uint32_t)&format + 4; // sizeof(format)
 	int state = 0; // 0: legal character; 1: '%'; 2: illegal format
 	int decimal = 0;
 	uint32_t hexadecimal = 0;
@@ -131,7 +191,7 @@ void printf(const char *format,...){
 				count = dec2Str(decimal, buffer, (uint32_t)MAX_BUFFER_SIZE, count);
 				break;
 			}
-			para += sizeof(uint32_t);
+			para += 4; // sizeof(uint32_t)
 			i++;
 			break;
 		case 2:

@@ -15,7 +15,7 @@ static void setIntr(struct GateDescriptor *ptr, uint32_t selector, uint32_t offs
 		请理解后再填，弄清楚offset和dpl是啥玩意儿
 		结构体声明在某个文件里
 	*/
-	ptr->offset_15_0 = offset & 0xffff;
+	ptr->offset_15_0 = offset & 0xFFFF;
 	ptr->segment = selector << 3;
 	ptr->pad0 = 0;
 	ptr->type = INTERRUPT_GATE_32;
@@ -52,9 +52,9 @@ void irqGProtectFault(); // 0xd
 void irqPageFault(); // 0xe
 void irqAlignCheck(); // 0x11
 void irqSecException(); // 0x1e
-void irqKeyboard(); 
+void irqKeyboard(); // 8259a映射为0x21
 
-void irqSyscall();	// 8259a映射为0x21
+void irqSyscall(); // 0x80
 
 
 //256 interrupt vector

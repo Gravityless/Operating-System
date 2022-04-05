@@ -32,6 +32,5 @@ void kEntry(void) {
 
 	loadUMain(); // load user program, enter user space
 
-	while(1);
 	assert(0);
 }

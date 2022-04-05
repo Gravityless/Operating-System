@@ -15,7 +15,7 @@
 #define STS_TG32    0xF         // 32-bit Trap Gate
 
 // GDT entries
-#define NR_SEGMENTS      7           // GDT size
+#define NR_SEGMENTS 7           // GDT size
 #define SEG_KCODE   1           // Kernel code
 #define SEG_KDATA   2           // Kernel data/stack
 #define SEG_UCODE   3           // User code
@@ -38,7 +38,7 @@ struct GateDescriptor {
 };
 
 struct TrapFrame {
-	uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
+	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; // pushal eax->ecx->...
 	int32_t irq;
 };
 

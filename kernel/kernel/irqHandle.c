@@ -186,7 +186,7 @@ void syscallGetChar(struct TrapFrame *tf){
 	while(c == 0){
 		enableInterrupt();
 		c = keyBuffer[bufferHead];
-		putChar(c);
+		// putChar(c);
 		disableInterrupt();
 	}
 	tf->eax=c;
@@ -201,31 +201,54 @@ void syscallGetChar(struct TrapFrame *tf){
 }
 
 void syscallGetStr(struct TrapFrame *tf){
+	int selector=USEL(SEG_UDATA);
+	asm volatile("movw %0, %%es"::"m"(selector));
 	char* str=(char*)(tf->edx);//str pointer
 	int size=(int)(tf->ebx);//str size
 	bufferHead=0;
 	bufferTail=0;
-	for(int j=0;j<MAX_KEYBUFFER_SIZE;j++)keyBuffer[j]=0;//init
+	for(int j=0;j<MAX_KEYBUFFER_SIZE;j++) keyBuffer[j]=0;//init
+	
 	int i=0;
+	char c=0;
+	while(c!='\n' && i<size){
 
-	char tpc=0;
-	while(tpc!='\n' && i<size){
-
-		while(keyBuffer[i]==0){
-			enableInterrupt();
-		}
-		tpc=keyBuffer[i];
-		i++;
+		while(keyBuffer[i]==0) enableInterrupt();
+		asm volatile("movb %0, %%es:(%1)"::"r"(keyBuffer[i]),"r"(str+i));
+		c=keyBuffer[i++];
 		disableInterrupt();
 	}
 
-	int selector=USEL(SEG_UDATA);
-	asm volatile("movw %0, %%es"::"m"(selector));
-	int k=0;
-	for(int p=bufferHead;p<i-1;p++){
-		asm volatile("movb %0, %%es:(%1)"::"r"(keyBuffer[p]),"r"(str+k));
-		k++;
-	}
-	asm volatile("movb $0x00, %%es:(%0)"::"r"(str+i));
+	asm volatile("movb $0x00, %%es:(%0)"::"r"(str+i-1));
 	return;
 }
+
+// void syscallGetStr(struct TrapFrame *tf){
+// 	char* str=(char*)(tf->edx);//str pointer
+// 	int size=(int)(tf->ebx);//str size
+// 	bufferHead=0;
+// 	bufferTail=0;
+// 	for(int j=0;j<MAX_KEYBUFFER_SIZE;j++)keyBuffer[j]=0;//init
+// 	int i=0;
+
+// 	char tpc=0;
+// 	while(tpc!='\n' && i<size){
+
+// 		while(keyBuffer[i]==0){
+// 			enableInterrupt();
+// 		}
+// 		tpc=keyBuffer[i];
+// 		i++;
+// 		disableInterrupt();
+// 	}
+
+// 	int selector=USEL(SEG_UDATA);
+// 	asm volatile("movw %0, %%es"::"m"(selector));
+// 	int k=0;
+// 	for(int p=bufferHead;p<i-1;p++){
+// 		asm volatile("movb %0, %%es:(%1)"::"r"(keyBuffer[p]),"r"(str+k));
+// 		k++;
+// 	}
+// 	asm volatile("movb $0x00, %%es:(%0)"::"r"(str+i));
+// 	return;
+// }

@@ -1,6 +1,6 @@
 #include "x86.h"
 #include "device.h"
-#include "/home/oslab/Desktop/test/lab2/lib/lib.h"
+#include "../../lib/lib.h"
 
 SegDesc gdt[NR_SEGMENTS];       // the new GDT, NR_SEGMENTS=7, defined in x86/memory.h
 TSS tss;
@@ -42,13 +42,13 @@ void enterUserSpace(uint32_t entry) {
 	 */
 	uint32_t EFLAGS = 0;
 	asm volatile("pushl %0":: "r" (USEL(SEG_UDATA))); // push ss
-	asm volatile("pushl %0":: "r" (0x2fffff)); 
+	asm volatile("pushl %0":: "r" (0x2fffff)); // push esp
 	asm volatile("pushfl"); //push eflags, sti
 	asm volatile("popl %0":"=r" (EFLAGS));
 	asm volatile("pushl %0"::"r"(EFLAGS|0x202));
 	asm volatile("pushl %0":: "r" (USEL(SEG_UCODE))); // push cs
 	asm volatile("pushl %0":: "r" (entry)); 
-	asm volatile("iret");
+	asm volatile("iret"); // pop eip / cs / elfags AND pop esp / ss
 }
 
 /*
@@ -62,7 +62,8 @@ void loadUMain(void) {
 	// TODO: 参照bootloader加载内核的方式，具体加载到哪里请结合手册提示思考！
 	// while(1);
 	int i = 0;
-	unsigned int elf = 0x400000;
+	unsigned char elf[200 * 512];
+	// unsigned char *elf = (char *)malloc(200 * 512);
 	unsigned int uMainEntry = 0x200000;
 	unsigned int USoffset = 0x200000;
 
@@ -102,6 +103,8 @@ void loadUMain(void) {
 		}
 	}
 	
+	// free(elf);
+
 	putStr("Entering UserSpace");
 	putChar('\n');
 	enterUserSpace(uMainEntry);

@@ -1,3 +1,4 @@
+.PHONY: os.img
 QEMU = qemu-system-i386
 
 os.img:

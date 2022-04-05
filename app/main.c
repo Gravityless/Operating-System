@@ -3,16 +3,37 @@
 
 //用户程序，在用户空间，lab测试方法：make clean后make，然后make play
 
+// 测试scanf
+/*
+int uEntry(void) {
+	//下面三行不用管
+	uint16_t selector;
+	asm volatile("movw %%ss, %0":"=m"(selector)); // necessary or not, iret may reset ds in QEMU
+	asm volatile("movw %%ax, %%ds"::"a"(selector));
+	int c, d;
+	char s[10];
+	// print Entered User Space
+	test();
+	printf("please input a char: ");
+	scanf("%c", &c);
+	printf("your char is: %c\n", c);
+	printf("please input a string: ");
+	scanf("%s", &s);
+	printf("your string is: %s\n", s);
+	printf("please input a decimal: ");
+	scanf("%d", &d);
+	printf("your decimal is: %d\n", d);
+	test();
+	while(1);
+	return 0;
+}*/
 
 int uEntry(void) {
 	//下面三行不用管
 	uint16_t selector;
 	asm volatile("movw %%ss, %0":"=m"(selector)); // necessary or not, iret may reset ds in QEMU
 	asm volatile("movw %%ax, %%ds"::"a"(selector));
-	
-	// print Entered User Space
-	test();
-	
+
 	printf("I/O test begin...\n");
 	printf("the answer should be:\n");
 	printf("#######################################################\n");

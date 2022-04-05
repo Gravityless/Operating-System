@@ -10,7 +10,10 @@
 
 #define MAX_BUFFER_SIZE 256
 
+void test();
+
 void printf(const char *format,...);
+void scanf(const char *format,...);
 char getChar();
 void getStr(char *str, int size);
 
