@@ -30,9 +30,9 @@ void syscallExit(struct StackFrame *sf);
 void irqHandle(struct StackFrame *sf) { // pointer sf = esp
 	/* Reassign segment register */
 	asm volatile("movw %%ax, %%ds"::"a"(KSEL(SEG_KDATA)));
+	
 	/* Save esp to stackTop */
-	uint32_t tmpStackTop=pcb[current].stackTop;
-	pcb[current].prevStackTop=pcb[current].stackTop;
+	//为了中断嵌套
 	pcb[current].stackTop=(uint32_t)sf;
 
 	switch(sf->irq) {
@@ -49,8 +49,6 @@ void irqHandle(struct StackFrame *sf) { // pointer sf = esp
 			break;
 		default:assert(0);
 	}
-	/* Recover stackTop */
-	pcb[current].stackTop=tmpStackTop;
 }
 
 void GProtectFaultHandle(struct StackFrame *sf) {
@@ -60,7 +58,7 @@ void GProtectFaultHandle(struct StackFrame *sf) {
 
 void timerHandle(struct StackFrame *sf){
 	//TODO 完成进程调度，建议使用时间片轮转，按顺序调度
-	
+
 }
 
 
@@ -96,7 +94,7 @@ void syscallWrite(struct StackFrame *sf) {
 }
 
 void syscallPrint(struct StackFrame *sf) {
-	int sel = sf->ds; //segment selector for user data, need further modification
+	int sel = sf->ds; // segment selector for user data, need further modification
 	char *str = (char*)sf->edx;
 	int size = sf->ebx;
 	int i = 0;
@@ -130,11 +128,9 @@ void syscallPrint(struct StackFrame *sf) {
 				}
 			}
 		}
-		
+
 	}
-	
 	updateCursor(displayRow, displayCol);
-	
 	sf->eax=size;
 	return;
 }	
@@ -167,7 +163,6 @@ void syscallFork(struct StackFrame *sf){
 	pcb[i].regs.gs = USEL(2 + i * 2);
 	pcb[i].regs.ss = USEL(2 + i * 2);
 	pcb[i].stackTop = (uint32_t)&(pcb[i].regs);
-	pcb[i].prevStackTop = (uint32_t)&(pcb[i].stackTop);
 	pcb[i].state = STATE_RUNNABLE;
 	pcb[i].timeCount = 0;
 	pcb[i].sleepTime = 0;
@@ -180,16 +175,15 @@ void syscallExec(struct StackFrame *sf) {
 	uint32_t entry = 0;
 	uint32_t secstart = 0;
 	uint32_t secnum =  0;
-	
+
+
 }
 
 
 void syscallSleep(struct StackFrame *sf){
 	//TODO:实现它
-
 }	
 
 void syscallExit(struct StackFrame *sf){
 	//TODO 先设置成dead，然后用int 0x20进入调度
-
 }

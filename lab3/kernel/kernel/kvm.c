@@ -57,15 +57,13 @@ void initProc() {
 		pcb[i].state = STATE_DEAD;
 	}
 	// kernel process
-	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop);
-	pcb[0].prevStackTop = (uint32_t)&(pcb[0].stackTop);
+	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop)-8;//这里最好像这样减8对齐，虽然影响不大...
 	pcb[0].state = STATE_RUNNING;
 	pcb[0].timeCount = MAX_TIME_COUNT;
 	pcb[0].sleepTime = 0;
 	pcb[0].pid = 0;
 	// user process
 	pcb[1].stackTop = (uint32_t)&(pcb[1].regs);
-	pcb[1].prevStackTop = (uint32_t)&(pcb[1].stackTop);
 	pcb[1].state = STATE_RUNNABLE;
 	pcb[1].timeCount = 0;
 	pcb[1].sleepTime = 0;

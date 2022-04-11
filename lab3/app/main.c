@@ -4,6 +4,11 @@
 
 
 int uEntry(void) {
+	uint16_t selector;
+	//uint16_t selector = 16;
+	asm volatile("movw %%ss, %0":"=m"(selector)); //XXX necessary or not, iret may reset ds in QEMU
+	asm volatile("movw %%ax, %%ds"::"a"(selector));
+	
 	int data = 0;	
 	
 	int ret = fork();
@@ -13,6 +18,7 @@ int uEntry(void) {
 		while( i != 0) {
 			i --;
 			printf("Child Process: Pong %d, %d;\n", data, i);
+			//sleep(1);
 			sleep(60);
 		}
 		exec(221, 20);

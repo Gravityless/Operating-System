@@ -1,7 +1,7 @@
 #include "x86.h"
 #include "device.h"
 
-int displayRow=0; 
+int displayRow=0; //futher extend, display position, in .bss section, not in .data section
 int displayCol=0;
 uint16_t displayMem[80*25];
 int displayClear = 0;

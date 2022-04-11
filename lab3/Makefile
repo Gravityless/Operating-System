@@ -21,5 +21,4 @@ clean:
 	@cd bootloader; make clean
 	@cd kernel; make clean
 	@cd app; make clean
-	@cd app_print; make clean
 	rm -f os.img

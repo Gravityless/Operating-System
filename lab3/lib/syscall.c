@@ -21,7 +21,7 @@ int32_t syscall(int num, uint32_t a1,uint32_t a2,
 	//change the condition and arbitrary memory locations.
 
 	/*
-	 Note: ebp shouldn't be flushed
+	Note: ebp shouldn't be flushed
 	    May not be necessary to store the value of eax, ebx, ecx, edx, esi, edi
 	*/
 	uint32_t eax, ecx, edx, ebx, esi, edi;
