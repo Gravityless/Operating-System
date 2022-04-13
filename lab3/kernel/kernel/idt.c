@@ -69,8 +69,8 @@ void initIdt() {
 	
 	/* Exceptions with DPL = 3 */
 	setIntr(idt + 0x20, SEG_KCODE, (uint32_t)irqTimer, DPL_KERN);
-
-	setIntr(idt + 0x80, SEG_KCODE, (uint32_t)irqSyscall, DPL_USER); // for int 0x80, interrupt vector is 0x80, Interruption is disabled
+	// for int 0x80, interrupt vector is 0x80, Interruption is disabled
+	setIntr(idt + 0x80, SEG_KCODE, (uint32_t)irqSyscall, DPL_USER); 
 
 	/* 写入IDT */
 	saveIdt(idt, sizeof(idt));

@@ -6,7 +6,7 @@ os.img:
 	@cd app; make
 	@cd app_print; make
 	cat bootloader/bootloader.bin kernel/kMain.elf app/uMain.elf app_print/app_print.elf > os.img
-	#   bootloader从0扇区开始，kernel从1扇区开始，app1从201扇区开始，app2从221扇区开始。注意阅读各种makefile！！！
+	#   bootloader从0扇区开始，kernel从1扇区开始，app1从201扇区开始，app2从221扇区开始。
 play: os.img
 	$(QEMU) -serial stdio os.img
 

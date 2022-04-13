@@ -4,7 +4,7 @@
  * io lib here
  * 库函数写在这
  */
-//static inline int32_t syscall(int num, uint32_t a1,uint32_t a2,
+// static inline int32_t syscall(int num, uint32_t a1,uint32_t a2,
 int32_t syscall(int num, uint32_t a1,uint32_t a2,
 		uint32_t a3, uint32_t a4, uint32_t a5)
 {
@@ -232,21 +232,23 @@ int str2Str(char *string, char *buffer, int size, int count) {
 
 pid_t fork() {
 	/*TODO:call syscall*/
-	return 0;
+	return syscall(SYS_FORK, 0, 0, 0, 0, 0);
 }
 
 int exec(uint32_t sec_start, uint32_t sec_num){
 	/*TODO:call syscall*/
-	return 0;
+	return syscall(SYS_EXEC, sec_start, sec_num, 0, 0, 0);
 }
 
 int sleep(uint32_t time) {
 	/*TODO:call syscall*/
+	syscall(SYS_SLEEP, time, 0, 0, 0, 0);
 	return 0;
 }
 
 int exit() {
 	/*TODO:call syscall*/
+	syscall(SYS_EXIT, 0, 0, 0, 0, 0);
 	return 0;
 }
 

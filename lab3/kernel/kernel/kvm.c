@@ -57,7 +57,7 @@ void initProc() {
 		pcb[i].state = STATE_DEAD;
 	}
 	// kernel process
-	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop)-8;//这里最好像这样减8对齐，虽然影响不大...
+	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop)-8; // 这里最好像这样减8对齐，虽然影响不大...
 	pcb[0].state = STATE_RUNNING;
 	pcb[0].timeCount = MAX_TIME_COUNT;
 	pcb[0].sleepTime = 0;
@@ -140,7 +140,7 @@ int loadelf(uint32_t Secstart, uint32_t Secnum,uint32_t Pysaddr,uint32_t *entry)
 
 uint32_t loadUMain(){
 	uint32_t entry = 0;
-	loadelf(201, 20, 0x200000, &entry);
-	putChar('A'); //额外的运算会让编译器放弃优化这个函数，注释此行可以重现bug
+	loadelf(201, 30, 0x200000, &entry);
+	putStr("Entering user app\n"); //额外的运算会让编译器放弃优化这个函数，注释此行可以重现bug
 	return entry;
 }
