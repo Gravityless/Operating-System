@@ -73,7 +73,8 @@ void SwitchProcess(uint32_t current) {
 
 void timerHandle(struct StackFrame *sf){
 	//TODO 完成进程调度，建议使用时间片轮转，按顺序调度
-	// int oldpid = current;
+
+	// 将所有BLOCKED进程sleep time减一
 	for (int i = 1; i < MAX_PCB_NUM; i++) {
 		if (pcb[i].state == STATE_BLOCKED) {
 			if ((--pcb[i].sleepTime) == 0)
@@ -81,24 +82,18 @@ void timerHandle(struct StackFrame *sf){
 		}
 	}
 
-	if ((++pcb[current].timeCount) >= MAX_TIME_COUNT || current == 0 || \
-	pcb[current].state == STATE_BLOCKED || pcb[current].state == STATE_DEAD) {
-		for (int i = 1; i < MAX_PCB_NUM; i++) {
-			if (pcb[i].state == STATE_RUNNABLE && i != current) {
-				if (pcb[current].state == STATE_RUNNING)
-					pcb[current].state = STATE_RUNNABLE;
-				current = i;
-				SwitchProcess(current);
-				return;
-			}
+	// 将当前进程time count加一
+	if ((++pcb[current].timeCount) >= MAX_TIME_COUNT || pcb[current].state == STATE_BLOCKED || pcb[current].state == STATE_DEAD || current == 0) {
+		int i = (current + 1) % MAX_PCB_NUM;
+		while (i != current) {
+			if (pcb[i].state == STATE_RUNNABLE && i != 0) break;
+			i = (i + 1) % MAX_PCB_NUM;
 		}
-
-		if (current != 0) {
-			pcb[current].state = STATE_RUNNABLE;
-			current = 0;
-			SwitchProcess(current);
-		}
+		if (i != current) current = i;
+		else current = 0; 
+		SwitchProcess(current);
 	}
+
 }
 
 
@@ -192,7 +187,6 @@ void syscallFork(struct StackFrame *sf){
 			break;
 		}
 	if (pid == -1) {
-		// pcb[current].regs.eax = -1; // 这里从syscall中返回后，eax的值会被系统调用前保存的值覆盖
 		sf->eax = -1;
 		return;
 	}
@@ -205,7 +199,6 @@ void syscallFork(struct StackFrame *sf){
 	// 拷贝pcb，这部分代码给出了，请注意理解
 	memcpy(&pcb[pid],&pcb[current],sizeof(ProcessTable));
 	
-	// pcb[current].regs.eax = pid;
 	pcb[pid].regs.eax = 0;
 	pcb[pid].regs.cs = USEL(1 + pid * 2);
 	pcb[pid].regs.ds = USEL(2 + pid * 2);
@@ -228,12 +221,14 @@ void syscallExec(struct StackFrame *sf) {
 	uint32_t secnum =  sf->edx;
 
 	loadelf(secstart, secnum, (current + 1) * 0x100000, &entry);
+	sf->eip = entry;
 	sf->eax = 0;
 }
 
 
 void syscallSleep(struct StackFrame *sf){
 	//TODO:实现sleep
+	if ((int)sf->ecx < 0) return;
 	pcb[current].sleepTime = sf->ecx;
 	pcb[current].state = STATE_BLOCKED;
 	asm volatile("int $0x20");
@@ -242,5 +237,6 @@ void syscallSleep(struct StackFrame *sf){
 void syscallExit(struct StackFrame *sf){
 	//TODO 先设置成dead，然后用int 0x20进入调度
 	pcb[current].state = STATE_DEAD;
+	// assert(0);
 	asm volatile("int $0x20");
 }

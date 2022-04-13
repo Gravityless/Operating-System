@@ -26,7 +26,6 @@ int32_t syscall(int num, uint32_t a1,uint32_t a2,
 	*/
 	uint32_t eax, ecx, edx, ebx, esi, edi;
 
-	
 	asm volatile("movl %%eax, %0":"=m"(eax));//store general registers' value
 	asm volatile("movl %%ecx, %0":"=m"(ecx));
 	asm volatile("movl %%edx, %0":"=m"(edx));
