@@ -56,7 +56,7 @@ struct ProcessTable {
 	uint32_t stack[MAX_STACK_SIZE];
 	struct StackFrame regs;
 	uint32_t stackTop;
-	uint32_t prevStackTop;
+	// uint32_t prevStackTop;
 	int state;
 	int timeCount;
 	int sleepTime;

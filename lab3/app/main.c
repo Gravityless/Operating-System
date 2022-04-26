@@ -9,7 +9,7 @@ int uEntry(void) {
 	asm volatile("movw %%ss, %0":"=m"(selector)); // XXX necessary or not, iret may reset ds in QEMU
 	asm volatile("movw %%ax, %%ds"::"a"(selector));
 	
-
+	// exec(261, 30);
 	int ret = fork();
 	int i = 8;
 	if (ret == 0) {

@@ -1,3 +1,4 @@
+// O(1)时间复杂度的create_thread实现
 #include"thread.h"
 #include<stdlib.h>
 

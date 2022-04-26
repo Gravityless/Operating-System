@@ -57,7 +57,7 @@ void initProc() {
 		pcb[i].state = STATE_DEAD;
 	}
 	// kernel process
-	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop)-8; // 这里最好减8对齐，虽然影响不大...
+	pcb[0].stackTop = (uint32_t)&(pcb[0].stackTop)-8; // 这里最好减8对齐，ss和eip未入栈
 	pcb[0].state = STATE_RUNNING;
 	pcb[0].timeCount = MAX_TIME_COUNT;
 	pcb[0].sleepTime = 0;
