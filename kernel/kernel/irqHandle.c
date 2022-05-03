@@ -312,6 +312,7 @@ void syscallReadStdIn(struct StackFrame *sf) {
 
 		dev[STD_IN].value--;
 		pcb[current].state = STATE_BLOCKED;
+		pcb[current].sleepTime = -1;
 		asm volatile("int $0x20");
 
 		int sel = sf->ds;
@@ -319,11 +320,11 @@ void syscallReadStdIn(struct StackFrame *sf) {
 		int size = sf->ebx;
 		int i = 0;
 		char character = 0;
-		asm volatile("movw %0, %%es"::"m"(sel));
 
+		asm volatile("movw %0, %%es"::"m"(sel));
 		while (i < size - 1) {
 			if (bufferHead != bufferTail) {
-				character = getChar(keyBuffer[bufferHead]);
+				character = keyBuffer[bufferHead];
 				bufferHead = (bufferHead + 1) % MAX_KEYBUFFER_SIZE;
 				asm volatile("movb %0, %%es:(%1)"::"r"(character), "r"(str+i));
 				i++;
@@ -345,7 +346,7 @@ void syscallReadStdIn(struct StackFrame *sf) {
 
 		while (i < size - 1) {
 			if (bufferHead != bufferTail) {
-				character = getChar(keyBuffer[bufferHead]);
+				character = keyBuffer[bufferHead];
 				bufferHead = (bufferHead + 1) % MAX_KEYBUFFER_SIZE;
 				asm volatile("movb %0, %%es:(%1)"::"r"(character), "r"(str+i));
 				i++;
@@ -457,27 +458,74 @@ void syscallSem(struct StackFrame *sf) {
 
 void syscallSemInit(struct StackFrame *sf) {
 	// TODO: complete `SemInit`
-
+	int i = 0;
+	for (; i < MAX_SEM_NUM; i++) {
+		if (sem[i].state == 0)
+			break;
+	}
+	if (i == MAX_SEM_NUM) {
+		sf->eax = -1;
+	} else {
+		sf->eax = i;
+		sem[i].state = 1;
+		sem[i].value = (int32_t)sf->edx;
+	}
+	return;
 }
 
 void syscallSemWait(struct StackFrame *sf) {
 	// TODO: complete `SemWait` and note that you need to consider some special situations
+	int i = (int)sf->edx;
+	if (sem[i].state == 1) {
+		sem[i].value--;
+		if (sem[i].value < 0) {
+			pcb[current].blocked.next = sem[i].pcb.next;
+			pcb[current].blocked.prev = &(sem[i].pcb);
+			sem[i].pcb.next = &(pcb[current].blocked);
+			(pcb[current].blocked.next)->prev = &(pcb[current].blocked);
 
+			pcb[current].state = STATE_BLOCKED;
+			pcb[current].sleepTime = -1;
+			asm volatile("int $0x20");
+		}
+		sf->eax = 0;
+	} else 
+		sf->eax = -1;
+	return;
 }
 
 void syscallSemPost(struct StackFrame *sf) {
 	int i = (int)sf->edx;
-	//ProcessTable *pt = NULL;
+	ProcessTable *pt = NULL;
 	if (i < 0 || i >= MAX_SEM_NUM) {
 		pcb[current].regs.eax = -1;
 		return;
 	}
 	// TODO: complete other situations
-
+	if (sem[i].state == 1) {
+		sem[i].value++;
+		if (sem[i].value <= 0) {
+			pt = (ProcessTable *)((uint32_t)(sem[i].pcb.prev) - (uint32_t)&(((ProcessTable *)0)->blocked));
+			pt->state = STATE_RUNNABLE;
+			pt->sleepTime = 0;
+		
+			sem[i].pcb.prev = (sem[i].pcb.prev)->prev;
+			(sem[i].pcb.prev)->next = &(sem[i].pcb);
+		}
+		sf->eax = 0;
+	} else
+		sf->eax = -1;
+	return;
 }
 
 void syscallSemDestroy(struct StackFrame *sf) {
 	// TODO: complete `SemDestroy`
-
+	int i = (int)sf->edx;
+	if (sem[i].state == 1) {
+		sem[i].state = 0;
+		sf->eax = 0;
+	} else
+		sf->eax = -1;
+	return;
 }
 
