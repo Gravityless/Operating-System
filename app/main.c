@@ -70,63 +70,71 @@ int uEntry(void) {
 			break;
 		}
 	}
+	// sem_t mutex;
+	// if (sem_init(&mutex, 1) == -1) 
+	// 	printf("Initialize mutex failed!\n");
 	printf("Semaphore Initializing Succeed\n");
 
 	ret = fork();
 	printf("ret = %d, id = %d\n", ret, id);
-	while (ret != 0 && id < 4) {
+	while (ret != 0 && id < 3) {
 		ret = fork();
 		id++;
 		printf("ret = %d, id = %d\n", ret, id);
 	}
-	if(ret != 0 && id == 4) exit();
+	if(ret != 0 && id == 3) id = 4;
 	printf("Philosopher %d: come\n", id);
 
-	sleep(500);
+	sleep(256);
+
+	while (1) {
+		printf("Philosopher %d: think\n", id);
+		sleep(128);
+		if ((id & 1) == 1) {
+			sem_wait(&sem[(id + 1) % N]);
+			printf("Philosopher %d: pick up %d\n", id, (id + 1) % N);
+			sem_wait(&sem[id]);
+			printf("Philosopher %d: pick up %d\n", id, id % N);
+		} else {
+			sem_wait(&sem[id]);
+			printf("Philosopher %d: pick up %d\n", id, id % N);
+			sem_wait(&sem[(id + 1) % N]);
+			printf("Philosopher %d: pick up %d\n", id, (id + 1) % N);
+		}
+		printf("Philosopher %d: eat\n", id);
+		sleep(128);
+		sem_post(&sem[(id + 1) % N]);
+		printf("Philosopher %d: release %d\n", id, (id + 1) % N);
+		sem_post(&sem[id]);
+		printf("Philosopher %d: release %d\n", id, id % N);
+	}
 
 	// while (1) {
 	// 	printf("Philosopher %d: think\n", id);
-		
-	// 	if ((id & 1) == 1) {
-	// 		sem_wait(&sem[(id + 1) % N]);
-	// 		printf("Philosopher %d: pick up %d\n", id, (id + 1) % N);
-	// 		sem_wait(&sem[id]);
-	// 		printf("Philosopher %d: pick up %d\n", id, id % N);
-	// 	} else {
-	// 		sem_wait(&sem[id]);
-	// 		printf("Philosopher %d: pick up %d\n", id, id % N);
-	// 		sem_wait(&sem[(id + 1) % N]);
-	// 		printf("Philosopher %d: pick up %d\n", id, (id + 1) % N);
-	// 	}
+	// 	sleep(200);
+	// 	sem_wait(&mutex);
+	// 	printf("Philosopher %d: acquire lock\n", id);
+	// 	sem_wait(&sem[id]);
+	// 	printf("Philosopher %d: pick up %d\n", id, id % N);
+	// 	sem_wait(&sem[(id + 1) % N]);
+	// 	printf("Philosopher %d: pick up %d\n", id, (id + 1) % N);
 	// 	printf("Philosopher %d: eat\n", id);
-		
-	// 	sem_post(&sem[(id + 1) % N]);
-	// 	printf("Philosopher %d: release %d\n", id, (id + 1) % N);
+	// 	sleep(128);
 	// 	sem_post(&sem[id]);
 	// 	printf("Philosopher %d: release %d\n", id, id % N);
-	// }
-
-	// sem_t mutex;
-	// sem_init(&mutex, 1);
-
-	// while (1) {
-	// 	printf("Philosopher %d: think\n", id);
-
-	// 	sem_wait(&mutex);
-	// 	sem_wait(&sem[id]);
-	// 	sem_wait(&sem[(id + 1) % N]);
-
-	// 	printf("Philosopher %d: eat\n", id);
-
-	// 	sem_post(&sem[id]);
 	// 	sem_post(&sem[(id + 1) % N]);
+	// 	printf("Philosopher %d: release %d\n", id, (id + 1) % N);
 	// 	sem_post(&mutex);
+	// 	printf("Philosopher %d: release lock\n", id);
 	// }
 
 	//生产者消费者问题
+	// printf("Producer %d: produce\n", id);
+	// printf("Consumer : consume\n");
 
 	//读者写者问题
-	
+	// printf("Reader %d: read, total %d reader\n", id, Rcount);
+	// printf("Writer %d: write\n", id);
 
 	exit();
 	return 0;
