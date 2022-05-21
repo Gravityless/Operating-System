@@ -28,7 +28,8 @@ int ls(char *destFilePath) {
 		// Hint: 使用 DIrEntry
 		for (int j = 0; j < ret / sizeof(DirEntry); j++) {
 			dirEntry = (DirEntry *)(buffer + j * sizeof(DirEntry));
-			printf("Name: %s Inode: %d\n", dirEntry->name, dirEntry->inode);
+			if (dirEntry->inode != 0)
+				printf("Name: %s Inode: %d\n", dirEntry->name, dirEntry->inode);
 		}
 	}
 	printf("\n");
