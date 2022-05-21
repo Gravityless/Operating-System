@@ -222,7 +222,7 @@ void syscallHandle(struct StackFrame *sf) {
 
 void syscallOpen(struct StackFrame *sf) {
 	int i;
-
+	char alreadyOpen = 0;
 	int ret = 0;
 	int size = 0;
 	int baseAddr = (current + 1) * 0x100000; // base address of user process
@@ -237,11 +237,29 @@ void syscallOpen(struct StackFrame *sf) {
 	if (ret == 0) { // file exist
 		// TODO: Open1
 		// 错误处理，在目标文件存在的条件下，flags设置的类型与该文件实际类型不一致，返回-1
-		
+		if ((sf->edx >> 3) && (destInode.type != DIRECTORY_TYPE)) {
+			sf->eax = -1;
+			return;
+		}
 
 		//TODO: Open2
 		// 错误处理，判断是否已经被打开，如果已经被打开就返回-1（遍历dev和file数组）
-
+		for (i = 0; i < MAX_FILE_NUM; i ++) {
+			if (file[i].inodeOffset = destInodeOffset) {
+				alreadyOpen = 1;
+				break;
+			}
+		}
+		for (i = 0; i < MAX_DEV_NUM; i ++) {
+			if (dev[i].inodeOffset = destInodeOffset) {
+				alreadyOpen = 1;
+				break;
+			}
+		}
+		if (alreadyOpen == 1) {
+			sf->eax = -1;
+			return;
+		}
 		
 
 		//if there is no error, open the file
@@ -267,20 +285,40 @@ void syscallOpen(struct StackFrame *sf) {
 
 		//TODO: Open3
 		//错误处理，不存在这个文件，并且O_CREATE没有被设置（O_CREATE如何判断，参考上面或者下面）
+		if ((sf->edx >> 2) % 2 == 0) {
+			sf->eax = -1;
+			return;
+		}
 
+		if (str[stringLen(str) - 1] == '/') str[stringLen(str) - 1] = 0;
+		if (stringChrR(str, '/', &size) == -1) {
+			sf->eax = -1;
+			return;
+		}
+		char fpath[NAME_LENGTH];
+		stringCpy(str, fpath, size + 1);
+		if (readInode(&sBlock, gDesc, &fatherInode, &fatherInodeOffset, fpath) == -1) {
+			sf->eax = -1;
+			return;
+		}
 
 		if ((sf->edx >> 3) % 2 == 0) { 
 			//TODO: Open4        
 			// 到了这里，目标文件不存在，并且CREATE位设置为1，并且要创建的目标文件是一个常规文件
 			// Hint: readInode allocInode
-
-
+			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, REGULAR_TYPE) == -1) {
+				sf->eax = -1;
+				return;
+			}		
 		}
 		else { 
 			//TODO: Open5        
 			// 目标文件不存在，并且CREATE位设置为1，并且要创建的目标文件是一个目录文件
 			// Hint: readInode allocInode
-			
+			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, DIRECTORY_TYPE) == -1) {
+				sf->eax = -1;
+				return;
+			}
 		}
 
 		//分配完inode，要打开，存入file数组
@@ -312,7 +350,11 @@ void syscallWrite(struct StackFrame *sf) {
 
 	// TODO: Write1        
 	// 如果要向文件里写入，在这里进行错误处理：超出文件范围或者该文件没有打开，返回-1
-
+	if (sf->ecx < MAX_DEV_NUM || sf->ecx >= MAX_DEV_NUM + MAX_FILE_NUM || 
+		file[sf->ecx - MAX_DEV_NUM].state == 0) {
+		sf->eax = -1;
+		return;
+	}
 	syscallWriteFile(sf);
 	return;
 }
@@ -373,8 +415,8 @@ void syscallWriteFile(struct StackFrame *sf) {
 	int quotient = file[sf->ecx - MAX_DEV_NUM].offset / sBlock.blockSize;
 	int remainder = file[sf->ecx - MAX_DEV_NUM].offset % sBlock.blockSize;
 
-	if(size<=0){
-		sf->eax=0;
+	if(size <= 0){
+		sf->eax = 0;
 		return;
 	}
 
@@ -382,17 +424,15 @@ void syscallWriteFile(struct StackFrame *sf) {
 	Inode inode;
 	diskRead(&inode, sizeof(Inode), 1, file[sf->ecx - MAX_DEV_NUM].inodeOffset);
 	
-
-	int stroff=0;
-
-	int sz=size;
+	int stroff = 0;
+	int sz = size;
 	// TODO: WriteFile1
 	// Hint: 
 	// 使用 readBlock 来读出内容到 buffer
 	// 使用MemCpy在内存操纵 buffer ，把内容写入 buffer
 	// 使用 writeBlock 把 buffer 的内容写回数据
 	// 这个比较麻烦，要分清楚 quotient、remainder、j 这些都是什么
-	// 
+
 
 
 	// TODO: WriteFile2
@@ -416,7 +456,11 @@ void syscallRead(struct StackFrame *sf) {
 	}
 	// TODO: Read1         
 	// 读取文件，在这里进行错误处理：超出文件范围或者该文件没有打开，返回-1
-
+	if (sf->ecx < MAX_DEV_NUM || sf->ecx >= MAX_DEV_NUM + MAX_FILE_NUM || 
+		file[sf->ecx - MAX_DEV_NUM].state == 0) {
+			sf->eax = -1;
+			return;
+		}
 
 	syscallReadFile(sf);
 	return;
@@ -474,7 +518,6 @@ void syscallReadFile(struct StackFrame *sf) {
 		return;
 	}
 
-	//int i = 0;
 	int j = 0;
 	int baseAddr = (current + 1) * 0x100000; // base address of user process
 	uint8_t *str = (uint8_t*)sf->edx + baseAddr; // buffer of user process
@@ -483,17 +526,15 @@ void syscallReadFile(struct StackFrame *sf) {
 	int quotient = file[sf->ecx - MAX_DEV_NUM].offset / sBlock.blockSize;
 	int remainder = file[sf->ecx - MAX_DEV_NUM].offset % sBlock.blockSize;
 
-
 	Inode inode;
 	diskRead(&inode, sizeof(Inode), 1, file[sf->ecx - MAX_DEV_NUM].inodeOffset);
 	
-	if(size<=0){
-		sf->eax=0;
+	if(size <= 0){
+		sf->eax = 0;
 		return;
 	}
 	
-
-	int stroff=0;
+	int blockOffset = 1;
 	int FCBindex = sf->ecx - MAX_DEV_NUM;
 	if(size + file[FCBindex].offset > inode.size){
 		//超出文件大小，就把size进行调整
@@ -504,10 +545,21 @@ void syscallReadFile(struct StackFrame *sf) {
 	// 提示，使用readBlock和MemCpy，逐个block读
 	// readBlock已经封装好了读取操作。参数：超级块，inode，块索引，buffer
  	// 注意理解上面的quotient、remainder、size和j都是啥玩意儿
-
-
-
-
+	readBlock(&sBlock, &inode, quotient, buffer);
+	for (int i = 0; i < sBlock.blockSize - remainder;) {
+		str[j++] = buffer[i++];
+		size--;
+	}
+	if (sz >= sBlock.blockSize - remainder) {
+		while (size > 0) {
+			readBlock(&sBlock, &inode, quotient + blockOffset, buffer);
+			blockOffset++;
+			for (int i = 0; i < sBlock.blockSize && size > 0;) {
+				str[j++] = buffer[i++];
+				size--;
+			}
+		}
+	}
 
 	pcb[current].regs.eax = sz;
 	file[sf->ecx - MAX_DEV_NUM].offset += sz;
@@ -530,15 +582,15 @@ void syscallLseek(struct StackFrame *sf) {
 	switch(sf->ebx) { // whence
 		case SEEK_SET:
 			// TODO: Lseek1        
-		
+			ofs = offset;
 			break;
 		case SEEK_CUR:
 			// TODO: Lseek2
-	
+			ofs = offset + file[FCBindex].offset;
 			break;
 		case SEEK_END:
 			// TODO: Lseek3
-
+			ofs = inode.size + offset;
 			break;
 		default:
 			break;
@@ -548,7 +600,7 @@ void syscallLseek(struct StackFrame *sf) {
 		return;
 	}
 	file[FCBindex].offset = ofs;
-	sf->eax=0;
+	sf->eax=ofs;
 	return;
 }
 
@@ -557,17 +609,18 @@ void syscallClose(struct StackFrame *sf) {
 	if (i < MAX_DEV_NUM || i >= MAX_DEV_NUM + MAX_FILE_NUM) { 
 		// TODO: Close1        
 		// 错误，设备是不能被关闭的，或者数组越界（超过DEV和FILE数目之和），返回-1
-
+		sf->eax = -1;
+		return;
 	}
 	if (file[i - MAX_DEV_NUM].state == 0) { 
 		// TODO: Close2    
 		// 错误，文件根本就没有打开，返回-1
-
+		sf->eax = -1;
+		return;
 	}
 	//TODO: Close3
 	// 关闭文件，对file数组操作
-
-	
+	file[sf->ecx - MAX_DEV_NUM].state = 0;
 	pcb[current].regs.eax = 0;
 	return;
 }
@@ -588,22 +641,41 @@ void syscallRemove(struct StackFrame *sf) {
 		// TODO: Remove1   
 		// 错误处理，考虑该文件或者它引用的文件或设备被使用的情况，这时返回-1退出
 		// 为了简化，只考虑文件本身正在被使用的情况（注意inode里面的成员，linkCount）
-
-
+		for (int i = 0; i < MAX_FILE_NUM; i++) {
+			if (file[i].state == 1 && file[i].inodeOffset == destInodeOffset) {
+				sf->eax = -1;
+				return;
+			}
+		}
+		for (int i = 0; i < MAX_DEV_NUM; i++) {
+			if (dev[i].state == 1 && dev[i].inodeOffset == destInodeOffset) {
+				sf->eax = -1;
+				return;
+			}
+		}
+		
 		// free inode
 		if (destInode.type == REGULAR_TYPE) {
 			// TODO: Remove2   
 			// 如果是常规文件，删除
 			// 注意错误处理，比如Type是常规文件，但路径是个目录...
 			// Hint: 用readInode，freeInode
-			
+			if (str[stringLen(str) - 1] == '/') str[stringLen(str) - 1] = 0;
+			stringChrR(str, '/', &size);
+			char fpath[NAME_LENGTH];
+			stringCpy(str, fpath, size + 1);
+			readInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, fpath);
+			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, REGULAR_TYPE);
 		}
 		else if (destInode.type == DIRECTORY_TYPE) {
 			// TODO: Remove3   
 			// 如果是目录，删除
-			// Hint: 用readInode， freeInode
-			
-
+			// Hint: 用readInode， freeInode		
+			stringChrR(str, '/', &size);
+			char fpath[NAME_LENGTH];
+			stringCpy(str, fpath, size + 1);
+			readInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, fpath);
+			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, DIRECTORY_TYPE);
 		}
 		if (ret == -1) {
 			pcb[current].regs.eax = -1;

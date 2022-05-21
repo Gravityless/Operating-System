@@ -974,7 +974,7 @@ int setAllocInode (SuperBlock *superBlock, GroupDesc *groupDesc, int inodeOffset
 
 // INFO
 // 这个函数会被用到
-// 该函数分配一个inode，需要提供父目录的inode、inode号、目标inode、inode号、目标文集名字、类型
+// 该函数分配一个inode，需要提供父目录的inode、inode号、目标inode、inode号、目标文件名字、类型
 // 支持的 destFilename 模式
 // destFilename = "" empty string, echo error
 int allocInode (SuperBlock *superBlock, GroupDesc *groupDesc,
