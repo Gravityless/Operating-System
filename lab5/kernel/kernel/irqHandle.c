@@ -424,7 +424,7 @@ void syscallWriteFile(struct StackFrame *sf) {
 	diskRead(&inode, sizeof(Inode), 1, file[sf->ecx - MAX_DEV_NUM].inodeOffset);
 
 	int sz = size;
-	int j = remainder;
+	int j = 0;
 	int blockNum = 1;
 	int FCBindex = sf->ecx - MAX_DEV_NUM;
 	// TODO: WriteFile1
@@ -445,7 +445,7 @@ void syscallWriteFile(struct StackFrame *sf) {
 
 	readBlock(&sBlock, &inode, quotient, buffer);
 	for (int i = 0; i < sBlock.blockSize - remainder; i++, j++) {
-		buffer[j] = str[j];
+		buffer[remainder + i] = str[j];
 		size--;
 	}
 	writeBlock(&sBlock, &inode, quotient, buffer);
@@ -458,8 +458,8 @@ void syscallWriteFile(struct StackFrame *sf) {
 		// 		allocLastBlock(&sBlock, gDesc, inode, file[FCBindex].offset, blockOffset);
 		// };
 		blockNum++;
-		for (int i = 0; i < sBlock.blockSize && size > 0; i++) {
-			buffer[i++] = str[j++];
+		for (int i = 0; i < sBlock.blockSize && size > 0; i++, j++) {
+			buffer[i] = str[j];
 			size--;
 		}
 		writeBlock(&sBlock, &inode, quotient + blockNum, buffer);
