@@ -23,7 +23,7 @@ int ls(char *destFilePath) {
 	if (fd == -1)
 		return -1;
 	ret = read(fd, buffer, 512 * 2);
-	while (ret != 0) {
+	if (ret != 0) {
 		// TODO: ls
 		// Hint: 使用 DIrEntry
 		for (int j = 0; j < ret / sizeof(DirEntry); j++) {
@@ -45,7 +45,7 @@ int cat(char *destFilePath) {
 	if (fd == -1)
 		return -1;
 	ret = read(fd, buffer, 512 * 2);
-	while (ret != 0) {
+	if (ret != 0) {
 		// TODO: cat
 		//把内容读到buffer，输出...
 		printf("%s\n", buffer);
@@ -80,10 +80,10 @@ int uEntry(void) {
 	printf("rmdir /usr/\n");
 	remove("/usr");
 	ls("/");
-	printf("create /usr/\n");
-	fd = open("/usr/", O_CREATE | O_DIRECTORY);
-	close(fd);
-	ls("/");
+	// printf("create /usr/\n");
+	// fd = open("/usr/", O_CREATE | O_DIRECTORY);
+	// close(fd);
+	// ls("/");
 	
 	exit();
 	return 0;
