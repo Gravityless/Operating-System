@@ -15,7 +15,6 @@ typedef union DirEntry DirEntry;
 
 int ls(char *destFilePath) {
 	printf("ls %s\n", destFilePath);
-	int i = 0;
 	int fd = 0;
 	int ret = 0;
 	DirEntry *dirEntry = 0;
@@ -27,7 +26,10 @@ int ls(char *destFilePath) {
 	while (ret != 0) {
 		// TODO: ls
 		// Hint: 使用 DIrEntry
-
+		for (int j = 0; j < ret / sizeof(DirEntry); j++) {
+			dirEntry = (DirEntry *)(buffer + j * sizeof(DirEntry));
+			printf("Name: %s Inode: %d\n", dirEntry->name, dirEntry->inode);
+		}
 	}
 	printf("\n");
 	close(fd);
@@ -46,7 +48,7 @@ int cat(char *destFilePath) {
 	while (ret != 0) {
 		// TODO: cat
 		//把内容读到buffer，输出...
-
+		printf("%s\n", buffer);
 	}
 	close(fd);
 	return 0;

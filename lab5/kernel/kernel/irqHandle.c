@@ -245,13 +245,13 @@ void syscallOpen(struct StackFrame *sf) {
 		//TODO: Open2
 		// 错误处理，判断是否已经被打开，如果已经被打开就返回-1（遍历dev和file数组）
 		for (i = 0; i < MAX_FILE_NUM; i ++) {
-			if (file[i].inodeOffset = destInodeOffset) {
+			if (file[i].inodeOffset == destInodeOffset) {
 				alreadyOpen = 1;
 				break;
 			}
 		}
 		for (i = 0; i < MAX_DEV_NUM; i ++) {
-			if (dev[i].inodeOffset = destInodeOffset) {
+			if (dev[i].inodeOffset == destInodeOffset) {
 				alreadyOpen = 1;
 				break;
 			}
@@ -306,7 +306,7 @@ void syscallOpen(struct StackFrame *sf) {
 			//TODO: Open4        
 			// 到了这里，目标文件不存在，并且CREATE位设置为1，并且要创建的目标文件是一个常规文件
 			// Hint: readInode allocInode
-			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, REGULAR_TYPE) == -1) {
+			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, &destInodeOffset, str + size + 1, REGULAR_TYPE) == -1) {
 				sf->eax = -1;
 				return;
 			}		
@@ -315,7 +315,7 @@ void syscallOpen(struct StackFrame *sf) {
 			//TODO: Open5        
 			// 目标文件不存在，并且CREATE位设置为1，并且要创建的目标文件是一个目录文件
 			// Hint: readInode allocInode
-			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, DIRECTORY_TYPE) == -1) {
+			if (allocInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, &destInodeOffset, str + size + 1, DIRECTORY_TYPE) == -1) {
 				sf->eax = -1;
 				return;
 			}
@@ -407,7 +407,6 @@ void syscallWriteFile(struct StackFrame *sf) {
 		return;
 	}
 
-	int j = 0;
 	int baseAddr = (current + 1) * 0x100000; // base address of user process
 	uint8_t *str = (uint8_t*)sf->edx + baseAddr; // buffer of user process
 	int size = sf->ebx;
@@ -423,22 +422,53 @@ void syscallWriteFile(struct StackFrame *sf) {
 	//先读出inode
 	Inode inode;
 	diskRead(&inode, sizeof(Inode), 1, file[sf->ecx - MAX_DEV_NUM].inodeOffset);
-	
-	int stroff = 0;
+
 	int sz = size;
+	int j = remainder;
+	int blockNum = 1;
+	int FCBindex = sf->ecx - MAX_DEV_NUM;
 	// TODO: WriteFile1
 	// Hint: 
 	// 使用 readBlock 来读出内容到 buffer
 	// 使用MemCpy在内存操纵 buffer ，把内容写入 buffer
 	// 使用 writeBlock 把 buffer 的内容写回数据
 	// 这个比较麻烦，要分清楚 quotient、remainder、j 这些都是什么
+	if(size <= 0){
+		sf->eax = 0;
+		return;
+	}
+	
+	if(size + file[FCBindex].offset > inode.size){
+		//超出文件大小，就把size进行调整
+		inode.size = size + file[FCBindex].offset;
+	}
 
-
+	readBlock(&sBlock, &inode, quotient, buffer);
+	for (int i = 0; i < sBlock.blockSize - remainder; i++, j++) {
+		buffer[j] = str[j];
+		size--;
+	}
+	writeBlock(&sBlock, &inode, quotient, buffer);
+	while (size > 0) {
+		// if (readBlock(&sBlock, &inode, quotient + blockNum, buffer) == -1) {
+		// 		int blockOffset = 0;
+		// 		/* get the block to allocate */
+		// 		getAvailBlock(&sBlock, gDesc, &blockOffset);
+		// 		/* allocte pointer block of inode */
+		// 		allocLastBlock(&sBlock, gDesc, inode, file[FCBindex].offset, blockOffset);
+		// };
+		blockNum++;
+		for (int i = 0; i < sBlock.blockSize && size > 0; i++) {
+			buffer[i++] = str[j++];
+			size--;
+		}
+		writeBlock(&sBlock, &inode, quotient + blockNum, buffer);
+	}
 
 	// TODO: WriteFile2
 	// 这里把inode修改后写回磁盘（inode的size需要修改）
 	// 使用 diskWrite 函数
-
+	diskWrite(&inode, sizeof(Inode), 1, file[sf->ecx - MAX_DEV_NUM].inodeOffset);
 
 
 	pcb[current].regs.eax = sz;
@@ -534,7 +564,7 @@ void syscallReadFile(struct StackFrame *sf) {
 		return;
 	}
 	
-	int blockOffset = 1;
+	int blockNum = 1;
 	int FCBindex = sf->ecx - MAX_DEV_NUM;
 	if(size + file[FCBindex].offset > inode.size){
 		//超出文件大小，就把size进行调整
@@ -546,18 +576,16 @@ void syscallReadFile(struct StackFrame *sf) {
 	// readBlock已经封装好了读取操作。参数：超级块，inode，块索引，buffer
  	// 注意理解上面的quotient、remainder、size和j都是啥玩意儿
 	readBlock(&sBlock, &inode, quotient, buffer);
-	for (int i = 0; i < sBlock.blockSize - remainder;) {
-		str[j++] = buffer[i++];
+	for (int i = 0; i < sBlock.blockSize - remainder && size > 0; i++) {
+		str[j++] = buffer[remainder + i];
 		size--;
 	}
-	if (sz >= sBlock.blockSize - remainder) {
-		while (size > 0) {
-			readBlock(&sBlock, &inode, quotient + blockOffset, buffer);
-			blockOffset++;
-			for (int i = 0; i < sBlock.blockSize && size > 0;) {
-				str[j++] = buffer[i++];
-				size--;
-			}
+	while (size > 0) {
+		readBlock(&sBlock, &inode, quotient + blockNum, buffer);
+		blockNum++;
+		for (int i = 0; i < sBlock.blockSize && size > 0;) {
+			str[j++] = buffer[i++];
+			size--;
 		}
 	}
 
@@ -664,8 +692,8 @@ void syscallRemove(struct StackFrame *sf) {
 			stringChrR(str, '/', &size);
 			char fpath[NAME_LENGTH];
 			stringCpy(str, fpath, size + 1);
-			readInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, fpath);
-			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, REGULAR_TYPE);
+			readInode(&sBlock, gDesc, &fatherInode, &fatherInodeOffset, fpath);
+			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, &destInodeOffset, str + size + 1, REGULAR_TYPE);
 		}
 		else if (destInode.type == DIRECTORY_TYPE) {
 			// TODO: Remove3   
@@ -674,8 +702,8 @@ void syscallRemove(struct StackFrame *sf) {
 			stringChrR(str, '/', &size);
 			char fpath[NAME_LENGTH];
 			stringCpy(str, fpath, size + 1);
-			readInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, fpath);
-			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, destInodeOffset, str + size + 1, DIRECTORY_TYPE);
+			readInode(&sBlock, gDesc, &fatherInode, &fatherInodeOffset, fpath);
+			ret = freeInode(&sBlock, gDesc, &fatherInode, fatherInodeOffset, &destInode, &destInodeOffset, str + size + 1, DIRECTORY_TYPE);
 		}
 		if (ret == -1) {
 			pcb[current].regs.eax = -1;
